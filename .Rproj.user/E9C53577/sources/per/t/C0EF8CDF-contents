@@ -1,0 +1,131 @@
+install.packages("tidyverse")
+install.packages("rio")
+install.packages("dplyr")
+
+library("tidyverse")
+library("rio")
+library("readxl")
+library("dplyr") #for %%
+
+#### Load GDP ##### 
+GDP<-read_csv("GDP.csv",col_names = c("Country","Code","Year","PerCapita"), col_types = (cols(PerCapita = col_integer()) ),skip=1)
+glimpse(GDP)
+
+g<-filter(GDP, Year>1965)
+
+g<-group_by(g,Country) %>%
+  summarize(PerCapitaMean=mean(PerCapita,  na.rm = TRUE))
+
+#####Life exp #####
+
+life<-read_excel("Life.xlsx", col_names = c("Country","Age"),skip=1)
+glimpse(life)
+
+l<-mutate(Life, Age = as.double(Age), Country=trimws(Country, which = c("both")))
+glimpse(l)
+
+
+gl<-inner_join(g, l, by = "Country")
+glimpse(gl)
+
+
+ggplot(gl, aes(PerCapitaMean, Age)) +
+  geom_point() 
+
+# Graph is not showing linear correlation => we will do log transformation 
+gl<-mutate(gl, pc=log(PerCapitaMean), Age)
+
+ggplot(gl, aes(pc, Age)) +
+  geom_point() 
+
+
+ggplot(gl,aes(x = pc)) + 
+  geom_density(alpha = 0.5)
+
+
+#normality test
+qqnorm(gl$pc,main="QQ plot of normal data",pch=19)
+qqline(gl$pc)
+shapiro.test(gl$pc)
+
+gl<-filter(gl, Age>68)
+
+##### Splitting sample ######
+set.seed(123)
+
+#Chose random numbers from 1 to number of rows of gl
+index <- sample(1:nrow(gl), round(nrow(gl) * 0.65)) 
+
+train <- gl[index, ]
+test  <- gl[-index, ]
+
+#compare linear line with train data
+ggplot(train, aes(pc, Age)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  geom_smooth(se = FALSE, color = "red")
+
+#compare density graph for test and train data
+ggplot(train, aes(x = pc)) + 
+  geom_density(trim = TRUE,col="red") + 
+  geom_density(data = test, trim = TRUE,col="black") 
+
+####Predict model ####
+
+#for prediction
+install.packages("modelr")
+library(modelr)
+
+
+
+mdl<-lm(Age ~ pc, data=train)
+summary(mdl)
+
+
+#add column with predictions
+(test <- test %>% 
+    add_predictions(mdl))
+
+#compare linear line with data
+ggplot(test, aes(pc, Age)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  geom_smooth(se = FALSE, color = "red")
+
+
+#compare MSE
+
+test %>% 
+  add_predictions(mdl) %>%
+  summarise(MSE = mean((Age - pred)^2))
+
+train %>% 
+  add_predictions(mdl) %>%
+  summarise(MSE = mean((Age - pred)^2))
+
+
+####### Residuals vs fitted ####
+
+#take residuals 
+mdl.res = resid(mdl)
+
+ggplot(train, aes(pc,mdl.res),xlab="Per Capita", ylab="Residuals") +
+  geom_ref_line(h = 0) +
+  geom_point() +
+  geom_smooth(se = FALSE) +
+  ggtitle("Residuals vs Fitted")
+
+
+qqnorm(mdl.res,main="QQ plot of residuals",pch=19)
+qqline(mdl.res)
+
+shapiro.test(mdl.res)
+
+install.packages("car")
+library("car")
+
+qqPlot(mdl.res)
+
+install.packages("ggpubr")
+library(ggpubr)
+ggqqplot(mdl.res)
