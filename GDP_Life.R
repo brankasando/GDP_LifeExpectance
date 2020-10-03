@@ -8,6 +8,7 @@ library("readxl")
 #library("dplyr") 
 
 #### Load GDP ##### 
+# from https://ourworldindata.org/grapher/average-real-gdp-per-capita-across-countries-and-regions?time=2016
 GDP<-read_csv("GDP.csv",col_names = c("Country","Code","Year","PerCapita"), col_types = (cols(PerCapita = col_integer()) ),skip=1)
 glimpse(GDP)
 
@@ -17,11 +18,11 @@ g<-group_by(g,Country) %>%
   summarize(PerCapitaMean=mean(PerCapita,  na.rm = TRUE))
 
 #####Load Life exp #####
-
+#from https://en.wikipedia.org/wiki/List_of_countries_by_life_expectancy
 life<-read_excel("Life.xlsx", col_names = c("Country","Age"),skip=1)
 glimpse(life)
 
-l<-mutate(Life, Age = as.double(Age), Country=trimws(Country, which = c("both")))
+l<-mutate(Life, Age = as.double(Age))
 glimpse(l)
 
 
@@ -30,16 +31,26 @@ glimpse(gl)
 
 
 ggplot(gl, aes(PerCapitaMean, Age)) +
-  geom_point() 
+  geom_point() +
+  ggtitle("Gaph1: Correlation between GDP and Life Expectancy")
 
 # Graph is not showing linear correlation => we will do log transformation 
 gl<-mutate(gl, pc=log(PerCapitaMean), Age)
 
-#this looks like linear correlation 
+
+#for label of points
+library(ggplot2)
+library(ggrepel)
+
+
+#this looks ,more like linear correlation 
 ggplot(gl, aes(pc, Age)) +
   geom_point() +
-  geom_smooth(method = "lm",se = FALSE) +
-  geom_smooth(se = FALSE, color = "red")
+  geom_smooth(method = "lm",se = FALSE)  +
+  geom_smooth(method ="loess" ,se = FALSE, color = "red", span=0.50) +
+  ggtitle("Gaph2: Correlation between log(PerCapita) and Life Expectancy") +
+  labs(x = "log(PerCapita)", y="Age")+
+  geom_label_repel(aes(label =ifelse(Age<55 | Age>83,as.character(Country),'')),box.padding= 0.35, point.padding = 0.5, segment.color = 'grey50') 
 
 
 ##### Splitting sample ######
@@ -51,53 +62,28 @@ index <- sample(1:nrow(gl), round(nrow(gl) * 0.65))
 train <- gl[index, ]
 test  <- gl[-index, ]
 
-#compare linear line with train data
-ggplot(train, aes(pc, Age)) +
-  geom_point() +
-  geom_smooth(method = "lm") +
-  geom_smooth(se = FALSE, color = "red")
+mdl<-lm(Age ~ pc, data=train)
+summary(mdl)
 
-#compare density graph for test and train data
-ggplot(train, aes(x = pc)) + 
-  geom_density(trim = TRUE,col="red") + 
-  geom_density(data = test, trim = TRUE,col="black") 
-
-####Predict model ####
+####Test model ####
 
 #for prediction
 install.packages("modelr")
 library(modelr)
 
-mdl<-lm(Age ~ pc, data=train)
-summary(mdl)
-
-
 #add column with predictions
 (test <- test %>% 
     add_predictions(mdl))
 
-#for label of points
-library(ggplot2)
-library(ggrepel)
-
-#compare linear line with data
-ggplot(test, aes(pc, Age, label=Country)) +
-  geom_point()+
-  geom_smooth(method = "lm") +
-  geom_smooth(se = FALSE, color = "red") + 
-  geom_label_repel(aes(label =ifelse(Age<62,as.character(Country),'')),box.padding= 0.35, point.padding = 0.5, segment.color = 'grey50') 
-
 
 #compare MSE
-
-test %>% 
+(MSE_train<-train %>% 
   add_predictions(mdl) %>%
-  summarise(MSE = mean((Age - pred)^2))
+  summarise(MSE = mean((Age - pred)^2)))
 
-train %>% 
-  add_predictions(mdl) %>%
-  summarise(MSE = mean((Age - pred)^2))
-
+(MSE_test<-test %>% 
+    add_predictions(mdl) %>%
+    summarise(MSE = mean((Age - pred)^2)))
 
 ####### Residuals vs fitted ####
 
@@ -108,17 +94,36 @@ ggplot(train, aes(pc,mdl.res)) +
   geom_ref_line(h = 0) +
   geom_point() +
   geom_smooth(se = FALSE) +
-  ggtitle("Residuals vs Fitted") +
+  ggtitle("Graph 3: Residuals vs Fitted") +
   labs(x = "PerCapita", y="Residuals")
 
 
-qqnorm(mdl.res,main="QQ plot of residuals",pch=19)
+qqnorm(mdl.res,main="Graph 4: QQ plot of residuals",pch=19)
 qqline(mdl.res)
 
 
-install.packages("ggpubr")
-library(ggpubr)
-ggqqplot(mdl.res)
-
-
 shapiro.test(mdl.res)
+
+install.packages("car")
+library(car)
+qqPlot(mdl.res,main="Graph 5: QQ plot of residuals")
+
+mdl.res[51]
+mdl.res[89]
+
+#to see which Countries has most mistaken prediction
+(train <- train %>% 
+    add_predictions(mdl))
+
+train<-mutate(train, res=Age-pred)
+
+ggplot(train, aes(pc, Age)) +
+  geom_point() +
+  geom_smooth(method = "lm",se = FALSE)  +
+  geom_smooth(method ="loess" ,se = FALSE, color = "red", span=0.50) +
+  ggtitle("Gaph6: Correlation between log(PerCapita) and Life Expectancy") +
+  labs(x = "log(PerCapita)", y="Age") +
+  geom_label_repel(aes(label =ifelse(Age<60 | (Age<78 & pc>10),Country,'')),box.padding= 0.35, point.padding = 0.5, segment.color = 'grey50')
+ 
+
+
