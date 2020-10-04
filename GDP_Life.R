@@ -1,11 +1,12 @@
+library("rstudioapi")                                 # Load rstudioapi package
+setwd(dirname(getActiveDocumentContext()$path))       # Set working directory to source file location
+
 install.packages("tidyverse")
-#install.packages("rio")
-#install.packages("dplyr")
+install.packages("dplyr")
 
 library("tidyverse")
-#library("rio")
 library("readxl")
-#library("dplyr") 
+library("dplyr") 
 
 #### Load GDP ##### 
 # from https://ourworldindata.org/grapher/average-real-gdp-per-capita-across-countries-and-regions?time=2016
@@ -22,7 +23,7 @@ g<-group_by(g,Country) %>%
 life<-read_excel("Life.xlsx", col_names = c("Country","Age"),skip=1)
 glimpse(life)
 
-l<-mutate(Life, Age = as.double(Age))
+l<-mutate(life, Age = as.double(Age))
 glimpse(l)
 
 
@@ -37,11 +38,10 @@ ggplot(gl, aes(PerCapitaMean, Age)) +
 # Graph is not showing linear correlation => we will do log transformation 
 gl<-mutate(gl, pc=log(PerCapitaMean), Age)
 
-
 #for label of points
 library(ggplot2)
+install.packages("ggrepel")
 library(ggrepel)
-
 
 #this looks ,more like linear correlation 
 ggplot(gl, aes(pc, Age)) +
@@ -101,7 +101,6 @@ ggplot(train, aes(pc,mdl.res)) +
 qqnorm(mdl.res,main="Graph 4: QQ plot of residuals",pch=19)
 qqline(mdl.res)
 
-
 shapiro.test(mdl.res)
 
 install.packages("car")
@@ -125,5 +124,4 @@ ggplot(train, aes(pc, Age)) +
   labs(x = "log(PerCapita)", y="Age") +
   geom_label_repel(aes(label =ifelse(Age<60 | (Age<78 & pc>10),Country,'')),box.padding= 0.35, point.padding = 0.5, segment.color = 'grey50')
  
-
 
