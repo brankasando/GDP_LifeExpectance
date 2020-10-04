@@ -1,6 +1,7 @@
 # Correlation between GDP of country and life expectancy
 
-Goal of this project is to determine whether there is a correlation between GDP of country and life expectancy and if that correlation is linear. 
+This project is done in RStudio.
+Goal of this project is to determine whether there is a correlation between Per Capita of countries and life expectancy and if that correlation is linear. 
 
 ---------------------------------------------------------
 #####Load GDP #####
@@ -13,7 +14,7 @@ Goal of this project is to determine whether there is a correlation between GDP 
 ---------------------------------------------------------
 
  -We joined tables by column “Country”
- -Graph 1: We can see that relationship we can see curve shape rather than linear correlation 
+ -Graph 1: We can see that relationship have curve shape rather than linear line. 
 
 =>We do log transformation of response variable “PerCapita”
 
@@ -28,9 +29,9 @@ Goal of this project is to determine whether there is a correlation between GDP 
 
  -Now, we want to create linear model and to test its accuracy by splitting sample into to 2:
 Train data – based on which we will create model
-Test data – test the model 
+Test data  – test the model 
 
- -We create linear model using function lm and summary of model is:
+ -We created linear model using function lm and summary of model is:
 
 ---------------------------------------------------------
 (Intercept)  20.8333     3.9599   5.261 8.43e-07 ***
@@ -43,7 +44,7 @@ Multiple R-squared:  0.6348,	Adjusted R-squared:  0.631
 F-statistic: 170.3 on 1 and 98 DF,  p-value: < 2.2e-16
 ---------------------------------------------------------
 
-=>We can see that there is a positive correlation between GDP and Life expectancy.
+=>We can see that there is a positive correlation between GDP and life expectancy.
 Linear regression can be written: 
 Life Expectancy=20.83 + 5.88*PerCapita
 
@@ -57,7 +58,7 @@ We will compare MSE from train data based on which we build model and test data.
 MSE_train=24.3
 MSE_test=15.3
 
-It’s expected that MSE_test is lower, but here is not the case. 
+It’s expected that MSE_train is lower, but here is not the case. 
 This can imply that model is not good and that is easy to get better result in test data, just by chance.
 It can imply that test set is small, or in general that there is not enough data.
 
@@ -65,19 +66,19 @@ It can imply that test set is small, or in general that there is not enough data
 
 Linear model yi=bi +axi + εi, 
 should fulfill following for ε : 
-1.	iid, don’t depend of X
+1.	iid, don’t depend on X
 2.	E(εi)=0
 3.	D(εi)=ϭ2<∞ 
 4.	εi  ~ N(0, ϭ2)
 
--Graph 3: Plot residuals vs fitted values. We can see that residuals (errors) are not equaly distributed for depending on predicted values. 
+-Graph 3: Plot residuals vs fitted values. We can see that residuals (errors) are not equaly distributed depending on predicted values. 
 -Graph 4: Plot residuals depending on theoretical quantiles of normal distribution.
 
 -Finaly Shapiro test is showing that residuals does not have normal distribution.
 
 -Graph 5: We can see index of residuals which are 'spoiling' normal distribution.
 We can see that Equatorial Guinea and Nigeria don't have that low PerCapita, but do have life expectancy under 60.
-Also, we can see that Kuwait, Lybia, Saudi Arabia, United Arab Emirates have high GDP, but not that high life expectancy as other countries with similar PerCapita.
+Also, we can see that Kuwait, Lybia, Saudi Arabia and United Arab Emirates have high GDP, but not that high life expectancy as other countries with similar PerCapita.
 
 #### Conclusion ####
 
