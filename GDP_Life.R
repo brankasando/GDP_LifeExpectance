@@ -78,8 +78,8 @@ library(modelr)
 
 #compare MSE
 (MSE_train<-train %>% 
-  add_predictions(mdl) %>%
-  summarise(MSE = mean((Age - pred)^2)))
+    add_predictions(mdl) %>%
+    summarise(MSE = mean((Age - pred)^2)))
 
 (MSE_test<-test %>% 
     add_predictions(mdl) %>%
@@ -90,13 +90,15 @@ library(modelr)
 #take residuals 
 mdl.res = resid(mdl)
 
-ggplot(train, aes(pc,mdl.res)) +
+(train <- train %>% 
+    add_predictions(mdl))
+
+ggplot(train, aes(pred,mdl.res)) +
   geom_ref_line(h = 0) +
   geom_point() +
   geom_smooth(se = FALSE) +
   ggtitle("Graph 3: Residuals vs Fitted") +
-  labs(x = "PerCapita", y="Residuals")
-
+  labs(x = "Fitted", y="Residuals")
 
 qqnorm(mdl.res,main="Graph 4: QQ plot of residuals",pch=19)
 qqline(mdl.res)
@@ -107,14 +109,11 @@ install.packages("car")
 library(car)
 qqPlot(mdl.res,main="Graph 5: QQ plot of residuals")
 
-mdl.res[51]
+#to see which Countries has most mistaken prediction
+train<-mutate(train, res=Age-pred)
+mdl.res[44]
 mdl.res[89]
 
-#to see which Countries has most mistaken prediction
-(train <- train %>% 
-    add_predictions(mdl))
-
-train<-mutate(train, res=Age-pred)
 
 ggplot(train, aes(pc, Age)) +
   geom_point() +
@@ -123,5 +122,4 @@ ggplot(train, aes(pc, Age)) +
   ggtitle("Gaph6: Correlation between log(PerCapita) and Life Expectancy") +
   labs(x = "log(PerCapita)", y="Age") +
   geom_label_repel(aes(label =ifelse(Age<60 | (Age<78 & pc>10),Country,'')),box.padding= 0.35, point.padding = 0.5, segment.color = 'grey50')
- 
 
